@@ -77,15 +77,15 @@ app.post('/', async (req, res) => {
             responseText = codeResponse.text;
             modelUsed = codeResponse.model;
         } else {
-            console.log("✨ Trying gemini-1.5-flash...");
-            const flashModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
+            console.log("✨ Trying gemini-1.5-flash-latest...");
+            const flashModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" }); 
             const flashChat = flashModel.startChat({ generationConfig: { maxOutputTokens: 200, temperature: 0.7 } });
             const flashResult = await flashChat.sendMessage(finalPromptToGemini);
             responseText = flashResult.response.text();
-            modelUsed = 'gemini-1.5-flash';
+            modelUsed = 'gemini-1.5-flash-latest';
 
             if (!responseText || responseText.trim() === '') {
-                throw new Error("⚠️ Flash returned empty response, trying gemini-1.5-pro...");
+                throw new Error("⚠️ Flash returned empty response, trying gemini-1.5-pro-latest...");
             }
         }
 
@@ -95,13 +95,13 @@ app.post('/', async (req, res) => {
             return res.status(500).json({ error: `Code generation failed: ${modelError.message || "Unknown error"}` });
         }
 
-        console.warn(`⚠️ Flash failed: ${modelError.message}, trying gemini-1.5-pro...`);
+        console.warn(`⚠️ Flash failed: ${modelError.message}, trying gemini-1.5-pro-latest...`);
         try {
-            const proModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+            const proModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
             const proChat = proModel.startChat({ generationConfig: { maxOutputTokens: 200, temperature: 0.7 } });
             const proResult = await proChat.sendMessage(finalPromptToGemini);
             responseText = proResult.response.text();
-            modelUsed = 'gemini-1.5-pro';
+            modelUsed = 'gemini-1.5-pro-latest';
 
             if (!responseText || responseText.trim() === '') {
                 throw new Error("⚠️ Pro also returned empty response. No fallback available.");
@@ -109,7 +109,6 @@ app.post('/', async (req, res) => {
 
         } catch (proFallbackError) {
             console.error("❌ Both Gemini models failed:", proFallbackError);
-            // OpenAI fallback removed, so we just return an error
             return res.status(500).json({ error: `All configured AI models failed: ${proFallbackError.message || "Unknown error"}` });
         }
     }
