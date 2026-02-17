@@ -11,8 +11,8 @@ async function generateCode(prompt, genAIInstance) {
     let modelUsed = '';
 
     try {
-        console.log("CodeGenerator: Trying with gemini-1.5-pro-latest...");
-        const model = genAIInstance.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+        console.log("CodeGenerator: Trying with gemini-pro...");
+        const model = genAIInstance.getGenerativeModel({ model: "gemini-pro" });
 
         const result = await model.generateContent({
             contents: [{ parts: [{ text: prompt }]}],
@@ -25,15 +25,27 @@ async function generateCode(prompt, genAIInstance) {
         });
 
         responseText = result.response.text();
-        modelUsed = 'gemini-1.5-pro-latest';
+        modelUsed = 'gemini-pro';
 
         if (!responseText || responseText.trim() === '') {
-            throw new Error("Gemini 1.5 Pro returned empty response. No fallback available.");
+            console.warn("⚠️ Gemini-pro returned empty response, trying gemini-flash...");
+            const flashModel = genAIInstance.getGenerativeModel({ model: "gemini-flash" });
+            const flashResult = await flashModel.generateContent({
+                contents: [{ parts: [{ text: prompt }]}],
+                generationConfig: {
+                    maxOutputTokens: 1000,
+                    temperature: 0.2,
+                    topP: 0.9,
+                    topK: 40,
+                },
+            });
+            responseText = flashResult.response.text();
+            modelUsed = 'gemini-flash';
         }
 
     } catch (error) {
-        console.error("CodeGenerator: Gemini failed, no other fallback available:", error);
-        throw error; // Seedha error throw karega, OpenAI fallback nahi hai ab
+        console.error("CodeGenerator: Gemini failed:", error);
+        throw error;
     }
 
     return { text: responseText, model: modelUsed };
