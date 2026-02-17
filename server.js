@@ -77,17 +77,18 @@ app.post('/', async (req, res) => {
             responseText = codeResponse.text;
             modelUsed = codeResponse.model;
         } else {
-            console.log("✨ Using gemini-pro...");
-            const proModel = genAI.getGenerativeModel({ model: "gemini-pro" }); 
-            const proChat = proModel.startChat({ 
-                generationConfig: { maxOutputTokens: 200, temperature: 0.7 } 
-            });
-            const proResult = await proChat.sendMessage(finalPromptToGemini);
-            responseText = proResult.response.text();
-            modelUsed = 'gemini-pro';
+            console.log("✨ Trying gemini-1.5-flash-latest...");
+            const flashModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" }); 
+            const flashResult = await flashModel.generateContent(finalPromptToGemini);
+            responseText = flashResult.response.text();
+            modelUsed = 'gemini-1.5-flash-latest';
 
             if (!responseText || responseText.trim() === '') {
-                throw new Error("⚠️ Gemini-pro returned empty response.");
+                console.warn("⚠️ Flash returned empty response, trying gemini-1.5-pro-latest...");
+                const proModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+                const proResult = await proModel.generateContent(finalPromptToGemini);
+                responseText = proResult.response.text();
+                modelUsed = 'gemini-1.5-pro-latest';
             }
         }
 
