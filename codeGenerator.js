@@ -1,9 +1,4 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-// const OpenAI = require('openai'); // OpenAI import hata diya gaya hai
-
-// const openai = new OpenAI({ // OpenAI instance hata diya gaya hai
-//   apiKey: process.env.OPENAI_API_KEY
-// });
 
 /**
  * Gemini का उपयोग करके कोड जनरेट करता है।
@@ -16,10 +11,11 @@ async function generateCode(prompt, genAIInstance) {
     let modelUsed = '';
 
     try {
-        console.log("CodeGenerator: Trying with gemini-1.5-pro...");
-        const model = genAIInstance.getGenerativeModel({ model: "gemini-1.5-pro" });
+        console.log("CodeGenerator: Trying with gemini-1.5-pro-latest...");
+        const model = genAIInstance.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
 
-        const chat = model.startChat({
+        const result = await model.generateContent({
+            contents: [{ parts: [{ text: prompt }]}],
             generationConfig: {
                 maxOutputTokens: 1000,
                 temperature: 0.2,
@@ -28,16 +24,15 @@ async function generateCode(prompt, genAIInstance) {
             },
         });
 
-        const result = await chat.sendMessage(prompt);
         responseText = result.response.text();
-        modelUsed = 'gemini-1.5-pro';
+        modelUsed = 'gemini-1.5-pro-latest';
 
         if (!responseText || responseText.trim() === '') {
-            throw new Error("Gemini 1.5 Pro returned empty response. No fallback available."); // Error message update kiya gaya hai
+            throw new Error("Gemini 1.5 Pro returned empty response. No fallback available.");
         }
 
     } catch (error) {
-        console.error("CodeGenerator: Gemini failed, no other fallback available:", error); // Console error message update kiya gaya hai
+        console.error("CodeGenerator: Gemini failed, no other fallback available:", error);
         throw error; // Seedha error throw karega, OpenAI fallback nahi hai ab
     }
 
