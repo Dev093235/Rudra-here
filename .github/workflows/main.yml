@@ -3,26 +3,25 @@ name: Deploy to Render
 on:
   push:
     branches:
-      - main # जब भी 'main' ब्रांच पर कोई नया कोड पुश होगा, यह वर्कफ़्लो चलेगा
+      - main  # jab bhi 'main' branch par code push hoga, workflow chalega
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest # यह जॉब Ubuntu ऑपरेटिंग सिस्टम पर चलेगी
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code # GitHub रिपॉजिटरी से कोड को क्लोन करें
+    - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Node.js # Node.js का वातावरण सेट करें
+    - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20' # Node.js का वर्जन (तुम '18', '20', या '22' चुन सकते हो)
+        node-version: '20'
 
-    - name: Install dependencies # package.json में लिस्टेड सभी लाइब्रेरीज़ इंस्टॉल करें
+    - name: Install dependencies
       run: npm install
 
-    - name: Trigger Render Deploy # Render डिप्लॉयमेंट को ट्रिगर करें
+    - name: Trigger Render Deploy
       env:
-        # यह Render का सीक्रेट URL है जिसे तुम्हें GitHub Secrets में सेट करना होगा
-        RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }} 
-      run: curl "$RENDER_DEPLOY_HOOK_URL" # Render के डिप्लॉय हुक URL को कॉल करें
+        RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+      run: curl -X POST "$RENDER_DEPLOY_HOOK_URL"
