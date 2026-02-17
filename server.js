@@ -1,7 +1,7 @@
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const cors = require('cors');
-require('dotenv').config(); // For local .env use
+require('dotenv').config();
 
 const codeGenerator = require('./codeGenerator'); 
 
@@ -28,7 +28,6 @@ if (GEMINI_API_KEY) {
     process.exit(1);
 }
 
-// === Main Chat Endpoint ===
 app.post('/', async (req, res) => {
     const userMessageFull = req.body.prompt;
     const senderID = req.body.senderID || 'anonymous_user';
@@ -42,56 +41,22 @@ app.post('/', async (req, res) => {
     let responseText = '';
     let modelUsed = '';
 
-    let languageInstruction = '';
-    let actualUserMessageForAI = userMessageFull;
-
-    const langInstructionPrefix = "LANGUAGE_INSTRUCTION:";
-    const actualPromptPrefix = "ACTUAL_PROMPT:";
-
-    if (userMessageFull.startsWith(langInstructionPrefix)) {
-        const parts = userMessageFull.split(actualPromptPrefix);
-        if (parts.length > 1) {
-            languageInstruction = parts[0].replace(langInstructionPrefix, '').trim();
-            actualUserMessageForAI = parts[1].trim();
-            console.log(`🌐 Language: "${languageInstruction}"`);
-            console.log(`💬 Actual Prompt: "${actualUserMessageForAI}"`);
-        }
-    }
-
-    const CODE_GEN_PREFIX = "CODE_GEN_REQUEST:";
-    const isExplicitCodeGenerationRequest = actualUserMessageForAI.startsWith(CODE_GEN_PREFIX);
-    let finalPromptToGemini = actualUserMessageForAI;
-
-    if (isExplicitCodeGenerationRequest) {
-        finalPromptToGemini = actualUserMessageForAI.slice(CODE_GEN_PREFIX.length).trim();
-    } else {
-        if (languageInstruction) {
-            finalPromptToGemini = `${languageInstruction} ${actualUserMessageForAI}`;
-        }
-    }
-
     try {
-        if (isExplicitCodeGenerationRequest) {
+        if (userMessageFull.startsWith("CODE_GEN_REQUEST:")) {
             console.log("🛠️ Using codeGenerator for code request.");
-            const codeResponse = await codeGenerator.generateCode(finalPromptToGemini, genAI);
+            const codeResponse = await codeGenerator.generateCode(userMessageFull.replace("CODE_GEN_REQUEST:", "").trim(), genAI);
             responseText = codeResponse.text;
             modelUsed = codeResponse.model;
         } else {
-            console.log("✨ Trying gemini-1.5-flash-latest...");
-            const flashModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" }); 
-            const flashResult = await flashModel.generateContent(finalPromptToGemini);
-            responseText = flashResult.response.text();
-            modelUsed = 'gemini-1.5-flash-latest';
-
-            if (!responseText || responseText.trim() === '') {
-                console.warn("⚠️ Flash returned empty response, trying gemini-1.5-pro-latest...");
-                const proModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
-                const proResult = await proModel.generateContent(finalPromptToGemini);
-                responseText = proResult.response.text();
-                modelUsed = 'gemini-1.5-pro-latest';
-            }
+            console.log("✨ Using gemini-1.5-pro-latest...");
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+            const result = await model.generateContent({
+                contents: [{ parts: [{ text: userMessageFull }]}],
+                generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+            });
+            responseText = result.response.text();
+            modelUsed = 'gemini-1.5-pro-latest';
         }
-
     } catch (error) {
         console.error("❌ Gemini model failed:", error);
         return res.status(500).json({ error: `Gemini model failed: ${error.message || "Unknown error"}` });
@@ -101,7 +66,6 @@ app.post('/', async (req, res) => {
     res.json({ text: responseText });
 });
 
-// Root check
 app.get('/', (req, res) => {
     res.send('🌐 Rudra AI Server is running!');
 });
