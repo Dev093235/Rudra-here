@@ -44,18 +44,32 @@ app.post('/', async (req, res) => {
     try {
         if (userMessageFull.startsWith("CODE_GEN_REQUEST:")) {
             console.log("🛠️ Using codeGenerator for code request.");
-            const codeResponse = await codeGenerator.generateCode(userMessageFull.replace("CODE_GEN_REQUEST:", "").trim(), genAI);
+            const codeResponse = await codeGenerator.generateCode(
+                userMessageFull.replace("CODE_GEN_REQUEST:", "").trim(),
+                genAI
+            );
             responseText = codeResponse.text;
             modelUsed = codeResponse.model;
         } else {
-            console.log("✨ Using gemini-1.5-pro-latest...");
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+            console.log("✨ Using gemini-pro...");
+            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
             const result = await model.generateContent({
                 contents: [{ parts: [{ text: userMessageFull }]}],
                 generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
             });
             responseText = result.response.text();
-            modelUsed = 'gemini-1.5-pro-latest';
+            modelUsed = 'gemini-pro';
+
+            if (!responseText || responseText.trim() === '') {
+                console.warn("⚠️ Gemini-pro returned empty response, trying gemini-flash...");
+                const flashModel = genAI.getGenerativeModel({ model: "gemini-flash" });
+                const flashResult = await flashModel.generateContent({
+                    contents: [{ parts: [{ text: userMessageFull }]}],
+                    generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+                });
+                responseText = flashResult.response.text();
+                modelUsed = 'gemini-flash';
+            }
         }
     } catch (error) {
         console.error("❌ Gemini model failed:", error);
